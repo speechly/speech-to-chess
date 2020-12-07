@@ -1,7 +1,7 @@
 import { Client } from '@speechly/browser-client';
 
 const client = new Client({
-  appId: 'f4d1dfd3-8d03-49fd-840d-7a394d761272',
+  appId: 'HereIs-AppId-From-The-Dashbord',
   language: 'en-US',
 });
 
@@ -14,10 +14,8 @@ window.onload = () => {
 };
 
 client.onSegmentChange((segment) => {
-  if (segment.intent && segment.isFinal) {
-    game = reducer(game, segment);
-    renderBoard(game.position);
-  }
+  game = reducer(game, segment);
+  renderBoard(game.position);
 });
 
 const defaultPosition = [
@@ -34,6 +32,8 @@ const defaultPosition = [
 let game = {
   position: defaultPosition,
   activeColor: 'w',
+  contextId: null,
+  entityStartPosition: 0,
 };
 
 /**
@@ -93,10 +93,27 @@ const formatEntities = (entities) =>
   }), {});
 
 /**
+ * Filter out used entities
+ * @return {array} filtered entities.
+ */
+const selectNewEntities = (segment, game) => {
+  if (segment.contextId != game.contextId) {
+    return segment.entities
+  }
+
+  return segment.entities.filter(entity =>
+    entity.startPosition > game.entityStartPosition)
+}
+
+/**
  * Creates a new game state
  * @return {object} new state of the game.
  */
 const reducer = (game, segment) => {
+  if (!segment.intent) {
+    return game;
+  }
+  const entities = selectNewEntities(segment, game);
   switch (segment.intent.intent) {
     case 'reset':
       const newGame = {
@@ -105,8 +122,21 @@ const reducer = (game, segment) => {
       };
       return newGame;
     case 'move':
-      let {piece, square} = formatEntities(segment.entities);
-      console.log(piece, square)
+      if (entities.length === 0) {
+        return game;
+      }
+      let {piece, square} = formatEntities(entities);
+      if (piece === undefined && square === undefined) {
+        return {
+          ...game,
+          contextId: segment.contextId,
+          entityStartPosition: entities[entities.length - 1].startPosition,
+        }
+      }
+      if (square === undefined && piece) {
+        return game
+      }
+
       if (piece) {
         piece = pieces[piece];
       } else {
@@ -123,6 +153,8 @@ const reducer = (game, segment) => {
       return {
         position: move(game.position, selectedPiece, {file, rank}),
         activeColor: game.activeColor === 'w' ? 'b' : 'w',
+        contextId: segment.contextId,
+        entityStartPosition: entities[entities.length - 1].startPosition,
       };
     case 'capture':
       return game;
