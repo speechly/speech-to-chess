@@ -1,7 +1,7 @@
 {
   "private": true,
   "dependencies": {
-    "@speechly/browser-client": "^1.0.0",
+    "@speechly/browser-client": "^1.0.15",
     "webpack": "^5.4.0"
   },
   "devDependencies": {
