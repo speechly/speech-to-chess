@@ -5,12 +5,23 @@ const client = new Client({
   language: 'en-US',
 });
 
-client.initialize();
+let init = false;
+
+async function start() {
+  if (!init) {
+    await client.initialize();
+    init = true;
+  }
+  client.startContext();
+}
+
+function stop() {
+  client.stopContext();
+}
 
 window.onload = () => {
-  renderBoard(game.position);
-  document.getElementById('mic').onmousedown = () => client.startContext();
-  document.getElementById('mic').onmouseup = () => client.stopContext();
+  document.getElementById('mic').onmousedown = start;
+  document.getElementById('mic').onmouseup = stop;
 };
 
 client.onSegmentChange((segment) => {
